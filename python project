@@ -1,0 +1,131 @@
+import streamlit as st
+from openai import OpenAI
+
+st.set_page_config(
+    page_title="AI Business Analyst Assistant",
+    page_icon="💻",
+    layout="wide"
+)
+
+st.markdown(
+    """
+AI■Assisted Business Situation Analysis
+"""
+)
+
+st.divider()
+
+with st.sidebar:
+    st.header("configuration")
+    temperature = st.slider(
+        "Creativity Level",
+        min_value=0.0,
+        max_value=1.0,
+        value=0.3,
+        step=0.1
+    )
+
+    st.markdown("""
+     **Low (0.2–0.3)** → Stable & factual  
+    **Medium (0.5)** → Balanced  
+    **High (0.8+)** → Creative
+    """)
+
+st.subheader("Enter Business Summary")
+
+    
+business_notes = st.text_area(
+    label="Paste Your Business Notes or Data",
+    height=180,
+    placeholder="""
+    Over the last six weeks, overall website traffic has remained largely stable across all acquisition channels.
+    Despite stable traffic, the conversion rate declined from an average of 3.4% to 2.5%.
+    Mobile users experienced a sharper drop in conversion compared to desktop users.
+    Customer support tickets related to checkout failures and payment issues increased by approximately 22%.
+    Several users reported slow loading times on the checkout and payment confirmation pages.
+    Marketing spend remained consistent, with no major campaign launches or pauses during this period.
+    Email marketing open rates stayed flat, but click-through rates dropped slightly.
+    Cart abandonment rates increased, particularly during peak evening hours.
+    Internal logs indicate intermittent payment gateway timeouts during high traffic periods.
+    No major code deployments were made in the last month, except minor UI changes on the checkout page.
+    Customer feedback mentions confusion around discount application and promo code errors.
+    Average order value remained unchanged, indicating pricing sensitivity may not be the main issue.
+    Competitor promotions increased during the same time period.
+    Management is concerned that technical issues combined with user experience problems may be impacting
+    revenue growth.
+    """
+    )
+
+st.subheader("Ask Your question?")
+user_question = st.text_input(
+        label="What do you want to know",
+        placeholder="list possible reasons for these problems"
+    )
+
+    # button
+
+analyze_btn = st.button("Get Your Insight By AI", use_container_width=True)
+
+# Logic
+
+def analyze_business(notes,question,temperature):
+    client = OpenAI(
+    api_key="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"
+    )
+    prompt = f"""
+    You are working as a Business Analyst Intern at a mid-sized digital commerce company. The management
+    team receives raw operational updates from multiple departments, but these updates are often unstructured
+    and difficult to analyze quickly. Your responsibility is to use the AI Business Analyst Assistant to ask relevant
+    business questions, interpret AI-generated insights, identify risks and missing data, and support
+    management decision-making.
+    Given the following business data 
+    {notes}
+
+    Explain This Terms
+
+    A. Business Understanding
+    B. Decision Support
+    C. Missing Data Analysis
+    D. Critical Thinking & Risk Awareness
+
+    User Question
+    {question}
+
+    Guidelines
+    - Answer clearly and practically
+    - Do NOT assume missing data
+    - If information is insufficient, explicitly say what is missing
+    - Keep business language simple and actionable
+    """
+
+    response = client.chat.completions.create(
+        model='gpt-4o-mini',
+        messages=[
+            {"role": "system", "content": "You are a careful, practical business analyst."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=temperature
+    )
+
+    return response.choices[0].message.content
+
+
+if analyze_btn:
+    if not business_notes.strip():
+        st.warning("Please enter business context before asking question")
+        st.stop()
+    if not user_question.strip():
+        st.warning("Please enter business question")
+        st.stop()
+
+    with st.spinner("Analyzing your question........."):
+
+        try:
+            output = analyze_business(business_notes,user_question,temperature)
+            st.success("Generating Insight..")
+            st.divider()
+            st.markdown(output)
+        except Exception as e:
+            st.error("Something went wrong....")
+            st.code(str(e))
+
